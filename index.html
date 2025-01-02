@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lua Executor</title>
+  <script src="https://cdn.jsdelivr.net/npm/fengari-web@latest/dist/fengari-web.js"></script>
+  <style>
+    /* Общие стили */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1e1e1e;
+      color: #dcdcdc;
+      padding: 30px;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    h1 {
+      color: #00bcd4;
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+
+    /* Текстовое поле для ввода Lua кода */
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #2a2a2a;
+      border: 1px solid #444;
+      color: #dcdcdc;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 16px;
+      border-radius: 8px;
+      resize: none;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #00bcd4;
+    }
+
+    /* Кнопка выполнения Lua кода */
+    button {
+      background-color: #00bcd4;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
+      outline: none; /* Убирает обводку */
+    }
+
+    button:hover {
+      background-color: #008c9e;
+    }
+
+    button:focus {
+      outline: none; /* Убирает синий контур */
+    }
+
+    button::-moz-focus-inner {
+      border: 0; /* Убирает рамку в старых браузерах Firefox */
+    }
+
+    /* Иконка настроек */
+    .settings-icon {
+      background-color: #00bcd4;
+      color: white;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      position: absolute;
+      top: -80px; /* Расположение сверху */
+      left: -60px; /* Расположение слева */
+      border-radius: 50%;
+      transition: background-color 0.3s ease;
+      outline: none; /* Убирает обводку */
+    }
+
+    .settings-icon:focus {
+      outline: none; /* Убирает синий контур */
+    }
+
+    .settings-icon:hover {
+      background-color: #008c9e;
+    }
+
+    /* Меню настроек */
+    .settings-menu {
+      display: none;
+      position: absolute;
+      top: -20px;
+      left: -30px;
+      background-color: #333;
+      border-radius: 8px;
+      padding: 15px;
+      width: 200px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+      z-index: 10;
+    }
+
+    .settings-menu label {
+      color: #dcdcdc;
+      font-size: 16px;
+    }
+
+    /* Переключатель */
+    input[type="checkbox"] {
+      transform: scale(1.3);
+      margin-left: 10px;
+    }
+
+    /* Контейнер для вывода */
+    #output {
+      background-color: #333;
+      color: #dcdcdc;
+      padding: 15px;
+      margin-top: 20px;
+      min-height: 50px;
+      white-space: pre-wrap;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 16px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    /* Ошибки */
+    .error {
+      color: #ff5555;
+    }
+
+    /* Анимация прокрутки */
+    #output::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    #output::-webkit-scrollbar-thumb {
+      background-color: #555;
+      border-radius: 5px;
+    }
+
+    #output::-webkit-scrollbar-thumb:hover {
+      background-color: #888;
+    }
+
+    /* Эффекты при наведении на элементы */
+    button:active {
+      transform: scale(0.98);
+    }
+
+    /* Дополнительные стили */
+    .container {
+      width: 80%;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .footer {
+      font-size: 14px;
+      color: #b0b0b0;
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    /* Гамбургер меню */
+    .hamburger {
+      position: absolute;
+      top: -80px;
+      right: -55px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 20px;
+    }
+
+    .hamburger div {
+      background-color: #00bcd4;
+      height: 5px;
+      border-radius: 5px;
+    }
+
+    /* Стиль для меню гамбургера */
+    .hamburger-menu {
+      display: none;
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background-color: #333;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+      width: 200px;
+    }
+
+    .hamburger-menu a {
+      color: #dcdcdc;
+      text-decoration: none;
+      font-size: 16px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .hamburger-menu a:hover {
+      color: #00bcd4;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Заголовок -->
+    <div class="header">
+      <h1>Lua Executor</h1>
+    </div>
+
+    <!-- Гамбургер меню -->
+    <div class="hamburger" id="hamburger">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+
+    <!-- Меню гамбургера -->
+    <div class="hamburger-menu" id="hamburger-menu">
+       <a href="minify-en.html" target="_blank">Lua Minifier</a>
+      <!-- Здесь могут быть другие ссылки или опции -->
+      
+    </div>
+
+    <!-- Иконка настроек -->
+    <div class="settings-icon" id="settings-icon">⚙️</div>
+
+    <!-- Меню настроек -->
+    <div class="settings-menu" id="settings-menu">
+      <label>
+        Очистить консоль перед запуском:
+        <input type="checkbox" id="clear-console-toggle">
+      </label>
+    </div>
+
+    <!-- Текстовое поле для ввода Lua кода -->
+    <textarea id="lua-code" placeholder="Введите Lua-код..."></textarea>
+
+    <!-- Кнопка выполнения Lua кода -->
+    <button id="execute-btn">Execute Lua Code</button>
+
+    <!-- Блок для вывода результатов -->
+    <div id="output"></div>
+
+    <!-- Футер с информацией -->
+    <div class="footer">
+      <p>Lua Executor | Powered by <a href="https://github.com/fengari-lua/fengari" target="_blank" style="color: #00bcd4;">Fengari</a></p>
+    </div>
+  </div>
+
+  <script>
+    const executeButton = document.getElementById("execute-btn");
+    const luaCodeInput = document.getElementById("lua-code");
+    const outputDiv = document.getElementById("output");
+    const clearConsoleToggle = document.getElementById("clear-console-toggle");
+    const settingsIcon = document.getElementById("settings-icon");
+    const settingsMenu = document.getElementById("settings-menu");
+    const hamburger = document.getElementById("hamburger");
+    const hamburgerMenu = document.getElementById("hamburger-menu");
+
+    // Перехватываем вывод консоли
+    const originalLog = console.log;
+    const originalError = console.error;
+
+    console.log = function(message) {
+      outputDiv.textContent += message + "\n";
+      originalLog.apply(console, arguments);
+      outputDiv.scrollTop = outputDiv.scrollHeight;
+    };
+
+    console.error = function(message) {
+      outputDiv.textContent += `Ошибка: ${message}\n`;
+      outputDiv.scrollTop = outputDiv.scrollHeight;
+    };
+
+    executeButton.addEventListener("click", () => {
+      const luaCode = luaCodeInput.value.trim();
+      if (!luaCode) {
+        outputDiv.textContent = "";
+        return;
+      }
+      if (clearConsoleToggle.checked) outputDiv.textContent = "";
+
+      try {
+        const luaFunction = fengari.load(luaCode, "LuaScript");
+        luaFunction();
+      } catch (e) {
+        console.error(e.message || e);
+      }
+    });
+
+    settingsIcon.addEventListener("click", () => {
+      settingsMenu.style.display = settingsMenu.style.display === "block" ? "none" : "block";
+    });
+
+    hamburger.addEventListener("click", () => {
+      hamburgerMenu.style.display = hamburgerMenu.style.display === "block" ? "none" : "block";
+    });
+  </script>
+</body>
+</html>
